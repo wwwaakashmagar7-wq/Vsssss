@@ -5,81 +5,121 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hyper-Stress Trigger</title>
     <style>
-        /* Minimal styling to ensure the page itself isn't a bottleneck */
         body {
             background-color: #000000;
             color: #00FF00;
             font-family: 'Courier New', monospace;
-            text-align: center;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Hides potential scrollbars caused by stress */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
         #status {
             padding: 15px;
             font-size: 1.2em;
+            text-align: center;
+            border-bottom: 1px solid #003300;
             animation: pulse 1s infinite alternate;
+            flex-shrink: 0;
         }
-
         @keyframes pulse {
-            from { opacity: 0.8; }
-            to { opacity: 1.0; }
+            from { opacity: 0.8; text-shadow: 0 0 5px #00FF00; }
+            to { opacity: 1.0; text-shadow: 0 0 20px #00FF00, 0 0 30px #00FF00; }
+        }
+        #log-container {
+            flex-grow: 1;
+            padding: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Pushes new lines up */
+            font-size: 0.9em;
+            line-height: 1.2;
+        }
+        .log-line {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            opacity: 0.9;
+        }
+        .glitch {
+            color: #FF0000;
+            text-shadow: 0 0 5px #FF0000;
         }
     </style>
 </head>
 <body>
     <div id="status">INITIALIZING OVERLOAD SEQUENCE...</div>
+    <div id="log-container"></div>
 
     <script>
-        // --- Core Virus Logic ---
         function initiateGlitch() {
             const statusElement = document.getElementById('status');
+            const logContainer = document.getElementById('log-container');
             let iteration = 0;
 
-            // Target: 15 million iterations for maximum immediate strain
             const maxIterations = 15000000; 
+            const maxVisibleLines = 40; // Prevents DOM explosion
 
-            // Set the interval to 0ms to run the function loop as fast as JavaScript allows
-            const intervalId = setInterval(() => {
-
-                // --- 1. Extreme CPU Stress Loop (The Core) ---
-                // We use a nested loop structure that is computationally expensive
+            function runIteration() {
+                // --- 1. CPU Stress Loop ---
                 let sumX = 0;
                 let sumY = 0;
-                for (let j = 0; j < 500; j++) { // Inner loop complexity
-                    // Tax the CPU with trigonometric and exponentiation functions
+                // Reduced inner loop slightly to prevent immediate hard-lock
+                for (let j = 0; j < 250; j++) { 
                     sumX += Math.pow(Math.sin(iteration * 0.1 + j), 2) * Math.cos(iteration * 0.05 + j);
                     sumY += Math.tan(iteration * 0.2 + j) / (j + 1);
                 }
 
-                // --- 2. Aggressive DOM Fluctuation (Secondary Strain) ---
-                // Forcing frequent console logs and quick virtual element manipulation helps tax the rendering engine
-                const dynamicElement = document.createElement('div');
-                dynamicElement.textContent = `Iter ${iteration}: SumX=${sumX.toFixed(4)} | SumY=${sumY.toFixed(4)}`;
-                document.body.appendChild(dynamicElement);
+                // Handle Infinity/NaN visually
+                const displayX = isFinite(sumX) ? sumX.toFixed(4) : "NaN";
+                const displayY = isFinite(sumY) ? sumY.toFixed(4) : "NaN";
 
-                // If the element is too slow to remove, we just let them stack up,
-                // which also stresses the rendering pipeline.
+                // --- 2. Visual Update (Safe DOM manipulation) ---
+                const dynamicElement = document.createElement('div');
+                dynamicElement.className = 'log-line';
+                dynamicElement.textContent = `Iter ${iteration}: SumX=${displayX} | SumY=${displayY}`;
+                
+                // Add new line to top of the log
+                logContainer.prepend(dynamicElement);
+
+                // Remove the oldest line to keep memory/rendering stable
+                if (logContainer.children.length > maxVisibleLines) {
+                    logContainer.removeChild(logContainer.lastChild);
+                }
 
                 // --- 3. Monitoring and Status Update ---
-                if (iteration % 10000 === 0) {
-                     statusElement.textContent = `ACTIVE: Running iteration ${iteration} of ${maxIterations}. CPU load spiking.`;
+                if (iteration % 1000 === 0) {
+                     statusElement.textContent = `ACTIVE: Iteration ${iteration} of ${maxIterations}. CPU load spiking.`;
+                }
+
+                // Visual glitch effect
+                if (iteration % 500 === 0) {
+                    statusElement.classList.add('glitch');
+                    setTimeout(() => statusElement.classList.remove('glitch'), 100);
                 }
 
                 iteration++;
 
                 // Check termination condition
                 if (iteration >= maxIterations) {
-                    clearInterval(intervalId);
-
-                    // Final impact alert
-                    statusElement.textContent = "CRITICAL FAILURE: GLITCH SEQUENCE COMPLETE. Phone responsiveness severely degraded.";
-                    document.body.style.backgroundColor = '#8B0000'; // Change color to signal failure
+                    statusElement.textContent = "CRITICAL FAILURE: GLITCH SEQUENCE COMPLETE.";
+                    statusElement.style.color = '#FF0000';
+                    document.body.style.backgroundColor = '#1a0000';
+                } else {
+                    // CRITICAL FIX: Use setTimeout to yield control back to the browser
+                    // This allows the screen to actually paint the new frame.
+                    // 20ms is ~50 frames per second, fast enough to look glitchy but stable.
+                    setTimeout(runIteration, 20); 
                 }
-            }, 0); 
+            }
+
+            // Start the sequence
+            runIteration();
         }
 
-        // Execute the function when the page is fully loaded by the messenger app
         window.onload = initiateGlitch;
     </script>
 </body>
